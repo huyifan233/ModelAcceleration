@@ -23,13 +23,13 @@ include_directories(${CUDNN_INCLUDE_PATH})
 link_directories(${CUDNN_LIBRARY_PATH})
 
 include_directories(${TORCH_INCLUDE_PATH})
+include_directories(${TORCH_INCLUDE_PATH}\\torch\\csrc\\api\\include)
 link_directories(${TORCH_LIBRARY_PATH})
-#link_libraries(c10)
-#link_libraries(c10_cuda)
+link_libraries(c10)
+link_libraries(torch)
 
 #link_libraries(torch)
 
-#include_directories(${CUDA_INCLUDE_PATH})
 #link_directories(${CUDA_LIBRARY_PATH})
 #link_libraries(cuda)
 
@@ -41,7 +41,7 @@ link_directories(${TORCH_LIBRARY_PATH})
 add_executable (TestModelAcceleration "TestModelAcceleration.cpp" "TestModelAcceleration.h")
 
 #target_link_libraries(TestModelAcceleration cudnn torch cuda c10 c10_cuda)
-target_link_libraries(TestModelAcceleration "cudnn" "torch" "c10" "c10_cuda"  "${CUDA_LIBRARIES}")
+target_link_libraries(TestModelAcceleration "cudnn" "torch" "c10_cuda" "c10" "caffe2_detectron_ops_gpu" "caffe2_nvrtc" "clog" "cpuinfo" "libprotobuf" "libprotoc" "${CUDA_LIBRARIES}")
 #target_link_libraries(modelAcceleration cudnn.lib torch.lib cuda.lib c10.lib c10_cuda.lib)
 #target_link_libraries(modelAcceleration torch)
 #target_link_libraries(modelAcceleration cuda)
