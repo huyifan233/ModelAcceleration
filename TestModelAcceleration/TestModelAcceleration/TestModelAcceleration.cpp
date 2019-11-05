@@ -46,9 +46,7 @@ mutex trainMutex;
 Barrier cyclicBarrier(num_epoch + 1);
 string str = "C:\\Users\\tchennech\\Documents\\ModelAcceleration\\TestModelAcceleration\\TestModelAcceleration\\test_script_model.pt";
 
-torch::jit::script::Module model = torch::jit::load(str);
-
-
+torch::jit::script::Module model;
 
 auto dataset = torch::data::datasets::MNIST("C:\\Users\\tchennech\\Documents\\ModelAcceleration\\TestModelAcceleration\\TestModelAcceleration\\mnist")
 .map(torch::data::transforms::Normalize<>(0.13066062, 0.30810776))
@@ -58,14 +56,15 @@ auto dataloader = torch::data::make_data_loader(move(dataset), torch::data::Data
 
 
 
-void train_every_epoch(torch::optim::Adam optimizer){
+void train_every_epoch(torch::optim::Adam & optimizer){
 	try {
 
 	
 		vector<torch::IValue> inputs;
 		int idx = 0;
-		cout << &optimizer << endl;
+		
 		for (torch::data::Example<>& batch : *dataloader) {
+			cout << this_thread::get_id() << "进入循环" << endl;
 			idx++;
 			torch::Tensor data = batch.data;
 			torch::Tensor target = batch.target;
@@ -84,17 +83,22 @@ void train_every_epoch(torch::optim::Adam optimizer){
 
 			if (idx % 100 == 0) {
 
-				cout << "loss: " << loss.item() << endl;
+				cout << this_thread::get_id()<<" loss: " << loss.item() << endl;
+				//cout<<" loss: " << loss.item() << endl;
 			}
 			inputs.clear();
 		}
 		cyclicBarrier.wait();
 	}
 	catch (exception & e) {
-		cerr << e.what() << endl;
+		cerr << this_thread::get_id()<<" "<< e.what() << endl;
+		cyclicBarrier.wait();
 	}
 	
 }
+
+
+
 
 int main()
 {
@@ -119,7 +123,8 @@ int main()
 		
 		//auto dataset = torch::data::make_data_loader(std)
 
-	
+		model = torch::jit::load(str);
+		model.to(at::kCUDA);
 
 		vector<at::Tensor>parameters;
 
@@ -130,19 +135,26 @@ int main()
 		torch::optim::Adam optimizer = torch::optim::Adam(parameters, torch::optim::AdamOptions(2e-4).learning_rate(learning_rate).beta1(0.5));
 		
 		double st, end;
+		
+
+		
 		//parameters.push_back()
 	
 		//std::size_t epochs = 101;
-		cout <<"first optimizer: " << &std::ref(optimizer) << endl;
 		st = clock();
 		for (int epoch = 0; epoch < num_epoch; epoch++) {
 			thread th(train_every_epoch, std::ref(optimizer));
-			th.detach();
-			
+			//thread th(test_unique_ptr);
+			th.detach();	
+			//train_every_epoch(std::ref(optimizer));
 		}
 		cyclicBarrier.wait();
 		end = clock();
 		cout << "cost: " << end - st << endl;
+
+		
+
+
 	
 	}
 	catch (exception & e) {
