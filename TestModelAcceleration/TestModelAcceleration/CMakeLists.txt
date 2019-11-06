@@ -22,6 +22,7 @@ find_package(Cuda REQUIRED)
 include_directories(${CUDNN_INCLUDE_PATH})
 link_directories(${CUDNN_LIBRARY_PATH})
 
+
 include_directories(${TORCH_INCLUDE_PATH})
 include_directories(${TORCH_INCLUDE_PATH}\\torch\\csrc\\api\\include)
 link_directories(${TORCH_LIBRARY_PATH})

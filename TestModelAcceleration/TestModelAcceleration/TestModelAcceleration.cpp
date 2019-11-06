@@ -40,7 +40,7 @@ private:
 
 int batch_size = 32;
 int learning_rate = 0.01;
-int num_epoch = 2;
+int num_epoch = 100;
 mutex trainMutex;
 
 Barrier cyclicBarrier(num_epoch + 1);
@@ -62,24 +62,28 @@ void train_every_epoch(torch::optim::Adam & optimizer){
 	
 		vector<torch::IValue> inputs;
 		int idx = 0;
-		
-		for (torch::data::Example<>& batch : *dataloader) {
-			cout << this_thread::get_id() << "进入循环" << endl;
+		trainMutex.lock();
+		for(torch::data::Iterator<torch::data::Example<torch::Tensor, torch::Tensor>> iter = dataloader.get()->begin(); iter != dataloader.get()->end(); ++iter){
+		//for (torch::data::Example<>& batch : *dataloader) {
+			//cout << this_thread::get_id() << "进入循环" << endl;
+			torch::data::Example<> & batch = *iter;
 			idx++;
 			torch::Tensor data = batch.data;
 			torch::Tensor target = batch.target;
 			data = data.to(at::kCUDA);
 			target = target.to(at::kCUDA);
+			//cout << data.size(0) << "   " << target.size(0) << endl;
 			inputs.push_back(data);
 			torch::Tensor loss;
-			if (trainMutex.try_lock()) {
-				torch::Tensor output = model.forward(inputs).toTensor().to(at::kCUDA);
-				loss = torch::nll_loss(output, target);
-				optimizer.zero_grad();
-				loss.backward();
-				optimizer.step();
-				trainMutex.unlock();
-			}
+			//std::lock_guard<std::mutex> lock(trainMutex);
+			
+			torch::Tensor output = model.forward(inputs).toTensor().to(at::kCUDA);
+			loss = torch::nll_loss(output, target);
+			optimizer.zero_grad();
+			loss.backward();
+			optimizer.step();
+		
+			
 
 			if (idx % 100 == 0) {
 
@@ -88,9 +92,11 @@ void train_every_epoch(torch::optim::Adam & optimizer){
 			}
 			inputs.clear();
 		}
+		trainMutex.unlock();
 		cyclicBarrier.wait();
 	}
 	catch (exception & e) {
+
 		cerr << this_thread::get_id()<<" "<< e.what() << endl;
 		cyclicBarrier.wait();
 	}
